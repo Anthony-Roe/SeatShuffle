@@ -1,7 +1,9 @@
 function GetSeatPedIsIn(ped)
     local vehicle = GetVehiclePedIsIn(ped)
     for i = -1, 50, 1 do
-        return GetPedInVehicleSeat(vehicle, i) == ped and i or nil
+        if (GetPedInVehicleSeat(vehicle, i) == ped) then
+            return i
+        end
     end
 end
 
