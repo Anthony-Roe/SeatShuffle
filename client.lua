@@ -1,16 +1,20 @@
+IsInVehicle = false
+PlayerPed = nil
+VehiclePlayerIsIn = 0
+SeatPlayerIsIn = -2
+
 function GetSeatPedIsIn(ped)
-    local vehicle = GetVehiclePedIsIn(ped)
-    for i = -1, 50, 1 do
-        if (GetPedInVehicleSeat(vehicle, i) == ped) then
-            return i
-        end
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    for i=-2,GetVehicleMaxNumberOfPassengers(vehicle) do
+        if(GetPedInVehicleSeat(vehicle, i) == ped) then return i end
     end
+    return -2
 end
 
 function IsShuffling()
-    if (GetIsTaskActive(GetPlayerPed(PlayerId()), 165) == 1) then
+    if (GetIsTaskActive(PlayerPed, 165) == 1) then
         return true
-    elseif (GetIsTaskActive(GetPlayerPed(PlayerId()), 165) == false) then
+    elseif (GetIsTaskActive(PlayerPed, 165) == false) then
         return false
     else
         return false
@@ -18,9 +22,9 @@ function IsShuffling()
 end
 
 function IsExitingVehicle()
-    if (GetIsTaskActive(GetPlayerPed(PlayerId()), 2) == 1) then
+    if (GetIsTaskActive(PlayerPed, 2) == 1) then
         return true
-    elseif (GetIsTaskActive(GetPlayerPed(PlayerId()), 2) == false) then
+    elseif (GetIsTaskActive(PlayerPed, 2) == false) then
         return false
     else
         return false
@@ -29,10 +33,16 @@ end
 
 Citizen.CreateThread(function()
     while true do
-        if (IsPedInAnyVehicle(GetPlayerPed(PlayerId()), false) and not IsPedGettingIntoAVehicle(GetPlayerPed(PlayerId())) and not IsExitingVehicle() and CanShuffleSeat(GetVehiclePedIsIn(GetPlayerPed(PlayerId())))) then
-            if (IsShuffling() == false and GetSeatPedIsIn(GetPlayerPed(PlayerId())) ~= -1) then
-                if (not IsControlPressed(1, 25) and not IsControlPressed(1, 24)) then
-                    SetPedIntoVehicle(GetPlayerPed(PlayerId()), GetVehiclePedIsIn(GetPlayerPed(PlayerId())), GetSeatPedIsIn(GetPlayerPed(PlayerId())))
+        PlayerPed = GetPlayerPed(PlayerId())
+        IsInVehicle = IsPedInAnyVehicle(PlayerPed, false)
+        if (IsInVehicle) then
+            VehiclePlayerIsIn = GetVehiclePedIsIn(PlayerPed)
+            SeatPlayerIsIn = GetSeatPedIsIn(PlayerPed)
+            if (not IsPedGettingIntoAVehicle(PlayerPed) and not IsExitingVehicle() and CanShuffleSeat(VehiclePlayerIsIn)) then
+                if (IsShuffling() == false and SeatPlayerIsIn ~= -1) then
+                    if (not IsControlPressed(1, 25) and not IsControlPressed(1, 24)) then
+                        SetPedIntoVehicle(PlayerPed, VehiclePlayerIsIn, SeatPlayerIsIn)
+                    end
                 end
             end
         end
@@ -42,15 +52,17 @@ end)
 
 Citizen.CreateThread(function()
     while true do
-        if (IsControlPressed(0, 21) and IsControlJustPressed(0, 26)) then
-            TaskShuffleToNextVehicleSeat(GetPlayerPed(PlayerId()), GetVehiclePedIsIn(GetPlayerPed(PlayerId())))
-        end
-        if (IsControlPressed(1, 25) or IsControlPressed(1, 24)) then
-            if (IsShuffling()) then
-                SetPedIntoVehicle(GetPlayerPed(PlayerId()), GetVehiclePedIsIn(GetPlayerPed(PlayerId())), GetSeatPedIsIn(GetPlayerPed(PlayerId())))
+        if (IsInVehicle and PlayerPed ~= nil) then
+            if (IsControlPressed(0, 21) and IsControlJustPressed(0, 26)) then
+                TaskShuffleToNextVehicleSeat(PlayerPed, VehiclePlayerIsIn)
+            end
+            if (IsControlPressed(1, 25) or IsControlPressed(1, 24)) then
+
+                if (IsShuffling()) then
+                    SetPedIntoVehicle(PlayerPed, VehiclePlayerIsIn, SeatPlayerIsIn)
+                end
             end
         end
-        
         Citizen.Wait(0)
     end
 end)
